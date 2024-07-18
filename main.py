@@ -1,14 +1,14 @@
 import streamlit as st
 from langchain_groq import ChatGroq
 from langchain.text_splitter import CharacterTextSplitter
-from langchain_community.embeddings import OpenAIEmbeddings
-from langchain_community.vectorstores import FAISS
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.vectorstores import Chroma
 from langchain.chains import RetrievalQA
 from langchain.evaluation.qa import QAEvalChain
 
 def generate_response(
     uploaded_file,
-    openai_api_key,
+    groq_api_key,
     query_text,
     response_text
 ):
@@ -21,12 +21,12 @@ def generate_response(
         chunk_overlap=0
     )
     texts = text_splitter.create_documents(documents)
-    embeddings = OpenAIEmbeddings(
-        openai_api_key=openai_api_key
+    embeddings = HuggingFaceEmbeddings(
+        model_name="BAAI/bge-small-en-v1.5"
     )
     
     # create a vectorstore and store there the texts
-    db = FAISS.from_documents(texts, embeddings)
+    db = Chroma.from_documents(texts, embeddings)
     
     # create a retriever interface
     retriever = db.as_retriever()
@@ -41,7 +41,7 @@ def generate_response(
     
     # regular QA chain
     qachain = RetrievalQA.from_chain_type(
-        llm=OpenAI(openai_api_key=openai_api_key),
+        llm=ChatGroq(groq_api_key=groq_api_key),
         chain_type="stuff",
         retriever=retriever,
         input_key="question"
@@ -52,7 +52,7 @@ def generate_response(
     
     # create an eval chain
     eval_chain = QAEvalChain.from_llm(
-        llm=OpenAI(openai_api_key=openai_api_key)
+        llm=ChatGroq(groq_api_key=groq_api_key)
     )
     # have it grade itself
     graded_outputs = eval_chain.evaluate(
@@ -107,8 +107,8 @@ with st.form(
     "myform",
     clear_on_submit=True
 ):
-    openai_api_key = st.text_input(
-        "OpenAI API Key:",
+    groq_api_key = st.text_input(
+        "Groq API Key:",
         type="password",
         disabled=not (uploaded_file and query_text)
     )
@@ -116,18 +116,18 @@ with st.form(
         "Submit",
         disabled=not (uploaded_file and query_text)
     )
-    if submitted and openai_api_key.startswith("sk-"):
+    if submitted and groq_api_key.startswith("gsk"):
         with st.spinner(
             "Wait, please. I am working on it..."
             ):
             response = generate_response(
                 uploaded_file,
-                openai_api_key,
+                groq_api_key,
                 query_text,
                 response_text
             )
             result.append(response)
-            del openai_api_key
+            del groq_api_key
             
 if len(result):
     st.write("Question")
