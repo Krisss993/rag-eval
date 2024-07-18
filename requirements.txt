@@ -1,0 +1,8 @@
+streamlit
+langchain
+langchain-groq
+chromadb
+tiktoken
+faiss-cpu
+langchain-community
+langchain-huggingface
